@@ -1,11 +1,13 @@
 import { ButtonPlay } from "@/shared/ui/ButtonPlay";
 import { CharacterList } from "@/widgets/CharacterList";
 import { FC } from "react";
+import { useNavigate } from "react-router-dom";
 
 const CharacterSelectionPage: FC = () => {
+const navigate = useNavigate();
+
   const handlePlay = () => {
-    console.log("Переход ко второй сцене");
-    // Здесь будет логика перехода к следующей сцене.
+    navigate("/hub");
   };
 
   return (

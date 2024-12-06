@@ -13,7 +13,7 @@ const CharacterList: FC = () => {
   );
 
   const handleSelect = (character: (typeof characters)[0]) => {
-    dispatch(selectCharacter(character));
+    dispatch(selectCharacter(character)); 
   };
 
   return (

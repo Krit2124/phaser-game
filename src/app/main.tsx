@@ -5,6 +5,9 @@ import { Provider } from "react-redux";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { MainLayout } from "./layouts/MainLayout";
 import { CharacterSelectionPage } from "@/pages/CharacterSelection";
+import { HubPage } from "@/pages/Hub";
+
+import "@/shared/styles/global.scss"
 
 const store = setupStore();
 
@@ -17,6 +20,10 @@ const router = createBrowserRouter([
         path: "",
         element: <CharacterSelectionPage />
       },
+      {
+        path: "hub",
+        element: <HubPage />
+      }
     ]
   },
 ]);

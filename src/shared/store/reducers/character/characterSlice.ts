@@ -1,8 +1,8 @@
 import { Character } from "@/shared/types/character";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-import warriorImage from "@/shared/assets/characters/warrior.png"
-import mageImage from "@/shared/assets/characters/mage.png"
+import warriorImage from "/assets/characters/warrior.png";
+import mageImage from "/assets/characters/mage.png";
 
 interface CharacterState {
   selectedCharacter: Character | null;
