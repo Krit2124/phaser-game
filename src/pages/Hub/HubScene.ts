@@ -16,8 +16,8 @@ export class HubScene extends Phaser.Scene {
   };
   private xKey!: Phaser.Input.Keyboard.Key; // Для перехода на следующую сцену
   private selectedCharacter: Character;
-  private nearFallingRocksStart = false; // Флаг близости к объекту
   private indicator!: Phaser.GameObjects.Text; // Индикатор взаимодействия
+  private fallingRocksStartLayer!: Phaser.Tilemaps.TilemapLayer; // Слой fallingRocksStart
 
   constructor(config: HubSceneConfig) {
     super("HubScene");
@@ -67,7 +67,7 @@ export class HubScene extends Phaser.Scene {
       animTIles,
       staticTiles,
     ]) as Phaser.Tilemaps.TilemapLayer;
-    const fallingRocksStartLayer = map.createLayer("fallingRocksStart", [
+    this.fallingRocksStartLayer = map.createLayer("fallingRocksStart", [
       animTIles,
       staticTiles,
     ]) as Phaser.Tilemaps.TilemapLayer;
@@ -75,16 +75,11 @@ export class HubScene extends Phaser.Scene {
     // Настраиваем коллизии для слоев
     waterLayer.setCollisionByProperty({ collides: true });
     objectsLayer.setCollisionByProperty({ collides: true });
-    fallingRocksStartLayer.setCollisionByProperty({ collides: true });
-
-    waterLayer.forEachTile(tile => {
-      console.log(tile);
-      
-    })
+    this.fallingRocksStartLayer.setCollisionByProperty({ collides: true });
 
     this.matter.world.convertTilemapLayer(waterLayer);
     this.matter.world.convertTilemapLayer(objectsLayer);
-    this.matter.world.convertTilemapLayer(fallingRocksStartLayer);
+    this.matter.world.convertTilemapLayer(this.fallingRocksStartLayer);
 
     // Добавляем персонажа
     this.player = this.matter.add.sprite(1135, 1000, "character", 0);
@@ -98,6 +93,7 @@ export class HubScene extends Phaser.Scene {
       S: Phaser.Input.Keyboard.Key;
       D: Phaser.Input.Keyboard.Key;
     };
+    this.xKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
     // Камера следует за персонажем
     this.cameras.main.startFollow(this.player);
@@ -124,25 +120,57 @@ export class HubScene extends Phaser.Scene {
     const speed = 3;
     let velocityX = 0;
     let velocityY = 0;
-
+  
     // Управление с помощью стрелок и WASD
     if (this.cursors.left?.isDown || this.wasdKeys.A.isDown) velocityX = -speed;
     if (this.cursors.right?.isDown || this.wasdKeys.D.isDown) velocityX = speed;
     if (this.cursors.up?.isDown || this.wasdKeys.W.isDown) velocityY = -speed;
     if (this.cursors.down?.isDown || this.wasdKeys.S.isDown) velocityY = speed;
-
+  
     // Устанавливаем скорость персонажа
     this.player.setVelocity(velocityX, velocityY);
-
+  
     // Разворот персонажа
     if (velocityX > 0) this.player.setFlipX(false); // Смотрит вправо
     if (velocityX < 0) this.player.setFlipX(true); // Смотрит влево
-
+  
+    // Получаем центр игрока
+    const playerCenter = this.player.getCenter();
+  
+    // Проверяем расстояние до тайлов fallingRocksStartLayer
+    const tileRadius = 2.5; // Радиус в тайлах
+    const tileWidth = 16; // Размер тайла в пикселях
+    const tileHeight = 16; // Размер тайла в пикселях
+    let isNear = false;
+  
+    this.fallingRocksStartLayer.forEachTile((tile) => {
+      if (!tile || !tile.properties.collides) return;
+  
+      const tileWorldX = tile.getCenterX();
+      const tileWorldY = tile.getCenterY();
+  
+      const distance = Phaser.Math.Distance.Between(
+        playerCenter.x,
+        playerCenter.y,
+        tileWorldX,
+        tileWorldY
+      );
+  
+      if (distance <= tileRadius * Math.max(tileWidth, tileHeight)) {
+        isNear = true;
+        this.indicator.setPosition(playerCenter.x, playerCenter.y - 40).setVisible(true);
+      }
+    });
+  
+    if (!isNear) {
+      this.indicator.setVisible(false);
+    }
+  
     // Переход к следующей сцене
-    if (this.nearFallingRocksStart && Phaser.Input.Keyboard.JustDown(this.xKey)) {
+    if (isNear && Phaser.Input.Keyboard.JustDown(this.xKey)) {
       this.scene.start("FallingRocksScene"); // Переход к следующей сцене
     }
-  }
+  }  
 }
 
 

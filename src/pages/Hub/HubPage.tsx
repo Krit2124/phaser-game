@@ -2,6 +2,7 @@ import { FC, useEffect, useRef } from "react";
 import Phaser from "phaser";
 import { HubScene } from "./HubScene";
 import { useAppSelector } from "@/shared/hooks/redux";
+import { FallingRocksScene } from "./FallingRocksScene"; // Импорт сцены
 
 const HubPage: FC = () => {
   const gameRef = useRef<HTMLDivElement>(null);
@@ -16,7 +17,10 @@ const HubPage: FC = () => {
         parent: gameRef.current!,
         width: window.innerWidth,
         height: window.innerHeight,
-        scene: [new HubScene({ selectedCharacter })],
+        scene: [
+          new HubScene({ selectedCharacter }), // Первая сцена
+          new FallingRocksScene({ selectedCharacter }), // Вторая сцена
+        ],
         physics: {
           default: "matter",
           matter: {
@@ -24,7 +28,7 @@ const HubPage: FC = () => {
           },
         },
         scale: {
-          mode: Phaser.Scale.RESIZE, // Масштабировать при изменении размера окна
+          mode: Phaser.Scale.RESIZE,
         },
       });
       return () => {
