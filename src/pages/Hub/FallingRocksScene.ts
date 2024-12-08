@@ -11,6 +11,7 @@ export class FallingRocksScene extends Phaser.Scene {
   private lives: number = 3;
   private timer!: Phaser.Time.TimerEvent;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys; // Управление
+  private livesText!: Phaser.GameObjects.Text;
 
   constructor(config: FallingRocksConfig) {
     super("FallingRocksScene");
@@ -83,11 +84,11 @@ export class FallingRocksScene extends Phaser.Scene {
     });
 
     // Отображение жизней
-    this.add
-      .text(16, 16, `Lives: ${this.lives}`, {
+    this.livesText = this.add
+      .text(this.cameras.main.centerX, this.cameras.main.centerY - 168, `Lives: ${this.lives}`, {
         fontSize: "20px",
         color: "#ffffff",
-      })
+      }).setOrigin(0.5)
       .setScrollFactor(0);
   }
 
@@ -119,7 +120,8 @@ export class FallingRocksScene extends Phaser.Scene {
     rock.setFriction(0, 0); // Отключаем трение
 
     // Обработка столкновений с барьерами
-    rock.setOnCollide((pair) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rock.setOnCollide((pair: any) => {
       const bodyA = pair.bodyA;
       const bodyB = pair.bodyB;
 
@@ -145,14 +147,7 @@ export class FallingRocksScene extends Phaser.Scene {
   }
 
   updateLivesUI() {
-    this.children.list.forEach((child) => {
-      if (
-        child instanceof Phaser.GameObjects.Text &&
-        child.text.startsWith("Lives")
-      ) {
-        child.setText(`Lives: ${this.lives}`);
-      }
-    });
+    this.livesText.setText(`Lives: ${this.lives}`);
   }
 
   onWin() {
@@ -161,7 +156,8 @@ export class FallingRocksScene extends Phaser.Scene {
         fontSize: "32px",
         color: "#ffffff",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setScrollFactor(0);
     this.time.removeAllEvents(); // Останавливаем таймеры
   }
 
@@ -171,7 +167,8 @@ export class FallingRocksScene extends Phaser.Scene {
         fontSize: "32px",
         color: "#ff0000",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setScrollFactor(0);
     this.time.removeAllEvents(); // Останавливаем таймеры
     this.matter.world.pause(); // Останавливаем мир
   }
