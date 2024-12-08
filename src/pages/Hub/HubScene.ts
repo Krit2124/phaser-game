@@ -38,7 +38,6 @@ export class HubScene extends Phaser.Scene {
   }
 
   create() {
-    this.matter.world.createDebugGraphic();
     // Создаём карту
     const map = this.make.tilemap({ key: "map" });
     const animTIles = map.addTilesetImage(
@@ -107,7 +106,7 @@ export class HubScene extends Phaser.Scene {
 
     // Добавляем индикатор взаимодействия
     this.indicator = this.add
-      .text(this.player.x, this.player.y - 40, "Press X", {
+      .text(this.player.x, this.player.y - 40, "Press X to play", {
         fontSize: "16px",
         color: "#ffffff",
         backgroundColor: "#000000",
@@ -117,7 +116,7 @@ export class HubScene extends Phaser.Scene {
   }
 
   update() {
-    const speed = 3;
+    const speed = 4;
     let velocityX = 0;
     let velocityY = 0;
   
@@ -172,5 +171,3 @@ export class HubScene extends Phaser.Scene {
     }
   }  
 }
-
-

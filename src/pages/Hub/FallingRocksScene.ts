@@ -12,6 +12,13 @@ export class FallingRocksScene extends Phaser.Scene {
   private timer!: Phaser.Time.TimerEvent;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys; // Управление
   private livesText!: Phaser.GameObjects.Text;
+  private timerText!: Phaser.GameObjects.Text;
+  private wasdKeys!: {
+    W: Phaser.Input.Keyboard.Key;
+    A: Phaser.Input.Keyboard.Key;
+    S: Phaser.Input.Keyboard.Key;
+    D: Phaser.Input.Keyboard.Key;
+  };
 
   constructor(config: FallingRocksConfig) {
     super("FallingRocksScene");
@@ -37,8 +44,6 @@ export class FallingRocksScene extends Phaser.Scene {
   }
 
   create() {
-    this.matter.world.createDebugGraphic();
-
     // Настройка карты
     const map = this.make.tilemap({ key: "fallingRocksMap" });
     const staticTiles = map.addTilesetImage("StaticTiles", "StaticTiles")!;
@@ -60,6 +65,12 @@ export class FallingRocksScene extends Phaser.Scene {
 
     // Управление
     this.cursors = this.input.keyboard!.createCursorKeys();
+    this.wasdKeys = this.input.keyboard!.addKeys("W,A,S,D") as {
+      W: Phaser.Input.Keyboard.Key;
+      A: Phaser.Input.Keyboard.Key;
+      S: Phaser.Input.Keyboard.Key;
+      D: Phaser.Input.Keyboard.Key;
+    };
 
     // Камера
     this.cameras.main.setScroll(
@@ -83,32 +94,83 @@ export class FallingRocksScene extends Phaser.Scene {
       callbackScope: this,
     });
 
-    // Отображение жизней
+    // Сброс жизней
+    this.lives = 3;
+
+    // Отображение жизней (выше центра на 10.5 тайлов)
     this.livesText = this.add
-      .text(this.cameras.main.centerX, this.cameras.main.centerY - 168, `Lives: ${this.lives}`, {
-        fontSize: "20px",
-        color: "#ffffff",
-      }).setOrigin(0.5)
+      .text(
+        this.cameras.main.centerX - 100,
+        this.cameras.main.centerY - 168,
+        `Lives: ${this.lives}`,
+        {
+          fontSize: "20px",
+          color: "#ffffff",
+        }
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0);
+
+    // Отображение таймера
+    this.timerText = this.add
+      .text(
+        this.cameras.main.centerX + 100,
+        this.cameras.main.centerY - 168,
+        `Time: 60`,
+        {
+          fontSize: "20px",
+          color: "#ffffff",
+        }
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0);
+
+    // Текст уведомления о перезапуске
+    this.add
+      .text(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY + 168,
+        "Press R to restart",
+        {
+          fontSize: "24px",
+          color: "#ffffff",
+        }
+      )
+      .setOrigin(0.5)
       .setScrollFactor(0);
   }
 
   update() {
+    // Обновление таймера
+    const remainingTime = Math.ceil((this.timer.getRemaining() || 0) / 1000);
+    this.timerText.setText(`Time: ${remainingTime}`);
+
     // Обработка движения игрока
     const speed = 4;
-    if (this.cursors.left.isDown) {
+    const left = this.cursors.left.isDown || this.wasdKeys.A.isDown;
+    const right = this.cursors.right.isDown || this.wasdKeys.D.isDown;
+    const up = this.cursors.up.isDown || this.wasdKeys.W.isDown;
+    const down = this.cursors.down.isDown || this.wasdKeys.S.isDown;
+
+    if (left) {
       this.player.setVelocityX(-speed);
-    } else if (this.cursors.right.isDown) {
+    } else if (right) {
       this.player.setVelocityX(speed);
     } else {
       this.player.setVelocityX(0);
     }
 
-    if (this.cursors.up.isDown) {
+    if (up) {
       this.player.setVelocityY(-speed);
-    } else if (this.cursors.down.isDown) {
+    } else if (down) {
       this.player.setVelocityY(speed);
     } else {
       this.player.setVelocityY(0);
+    }
+
+    // Перезапуск сцены
+    if (this.input.keyboard!.checkDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.R))) {
+      this.scene.restart(); // Перезапуск
     }
   }
 
@@ -169,7 +231,7 @@ export class FallingRocksScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setScrollFactor(0);
-    this.time.removeAllEvents(); // Останавливаем таймеры
+    this.time.removeAllEvents(); // Останавливаем таймер
     this.matter.world.pause(); // Останавливаем мир
   }
 
