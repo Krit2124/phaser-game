@@ -34,7 +34,7 @@ export class FallingRocksScene extends Phaser.Scene {
     );
 
     // Загрузка персонажа
-    this.load.spritesheet("character", this.selectedCharacter.image, {
+    this.load.spritesheet("character", this.selectedCharacter.sprite, {
       frameWidth: 32,
       frameHeight: 32,
     });
@@ -62,6 +62,41 @@ export class FallingRocksScene extends Phaser.Scene {
     // Добавление персонажа
     this.player = this.matter.add.sprite(320, 320, "character", 0);
     this.player.setFixedRotation();
+
+    // Анимации
+    this.anims.create({
+      key: "walk-down",
+      frames: this.anims.generateFrameNumbers("character", { start: 0, end: 3 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "walk-left",
+      frames: this.anims.generateFrameNumbers("character", { start: 4, end: 7 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "walk-right",
+      frames: this.anims.generateFrameNumbers("character", {
+        start: 8,
+        end: 11,
+      }),
+      frameRate: 10,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "walk-up",
+      frames: this.anims.generateFrameNumbers("character", {
+        start: 12,
+        end: 15,
+      }),
+      frameRate: 10,
+      repeat: -1,
+    });
 
     // Управление
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -125,19 +160,21 @@ export class FallingRocksScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setScrollFactor(0);
 
-    // Текст уведомления о перезапуске
+    // Интерактивная кнопка для перезапуска
     this.add
       .text(
         this.cameras.main.centerX,
         this.cameras.main.centerY + 168,
-        "Press R to restart",
+        "Press R to Restart",
         {
-          fontSize: "24px",
+          fontSize: "20px",
           color: "#ffffff",
         }
       )
       .setOrigin(0.5)
-      .setScrollFactor(0);
+      .setInteractive()
+      .setScrollFactor(0)
+      .on("pointerdown", () => this.scene.restart()); // Перезапуск сцены
   }
 
   update() {
@@ -146,26 +183,37 @@ export class FallingRocksScene extends Phaser.Scene {
     this.timerText.setText(`Time: ${remainingTime}`);
 
     // Обработка движения игрока
-    const speed = 4;
-    const left = this.cursors.left.isDown || this.wasdKeys.A.isDown;
-    const right = this.cursors.right.isDown || this.wasdKeys.D.isDown;
-    const up = this.cursors.up.isDown || this.wasdKeys.W.isDown;
-    const down = this.cursors.down.isDown || this.wasdKeys.S.isDown;
+    const speed = 3;
+    let velocityX = 0;
+    let velocityY = 0;
+    let animationKey = "";
 
-    if (left) {
-      this.player.setVelocityX(-speed);
-    } else if (right) {
-      this.player.setVelocityX(speed);
-    } else {
-      this.player.setVelocityX(0);
+    // Управление с помощью стрелок и WASD
+    if (this.cursors.left?.isDown || this.wasdKeys.A.isDown) {
+      velocityX = -speed;
+      animationKey = "walk-left";
+    }
+    if (this.cursors.right?.isDown || this.wasdKeys.D.isDown) {
+      velocityX = speed;
+      animationKey = "walk-right";
+    }
+    if (this.cursors.up?.isDown || this.wasdKeys.W.isDown) {
+      velocityY = -speed;
+      animationKey = "walk-up";
+    }
+    if (this.cursors.down?.isDown || this.wasdKeys.S.isDown) {
+      velocityY = speed;
+      animationKey = "walk-down";
     }
 
-    if (up) {
-      this.player.setVelocityY(-speed);
-    } else if (down) {
-      this.player.setVelocityY(speed);
+    // Устанавливаем скорость персонажа
+    this.player.setVelocity(velocityX, velocityY);
+
+    // Проигрываем анимацию только если персонаж движется
+    if (velocityX !== 0 || velocityY !== 0) {
+      this.player.anims.play(animationKey, true);
     } else {
-      this.player.setVelocityY(0);
+      this.player.anims.stop(); // Останавливаем анимацию, если персонаж стоит
     }
 
     // Перезапуск сцены

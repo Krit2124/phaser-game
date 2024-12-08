@@ -31,7 +31,7 @@ export class HubScene extends Phaser.Scene {
     this.load.tilemapTiledJSON("map", "/assets/maps/map.json");
 
     // Загружаем текстуры персонажа
-    this.load.spritesheet("character", this.selectedCharacter.image, {
+    this.load.spritesheet("character", this.selectedCharacter.sprite, {
       frameWidth: 32,
       frameHeight: 32,
     });
@@ -84,6 +84,35 @@ export class HubScene extends Phaser.Scene {
     this.player = this.matter.add.sprite(1135, 1000, "character", 0);
     this.player.setFixedRotation();
 
+    // Анимации персонажа
+    this.anims.create({
+      key: "walk-down",
+      frames: this.anims.generateFrameNumbers("character", { start: 0, end: 3 }), // Кадры для движения вниз
+      frameRate: 10,
+      repeat: -1, // Зацикленное воспроизведение
+    });
+    
+    this.anims.create({
+      key: "walk-left",
+      frames: this.anims.generateFrameNumbers("character", { start: 4, end: 7 }), // Кадры для движения влево
+      frameRate: 10,
+      repeat: -1,
+    });
+    
+    this.anims.create({
+      key: "walk-right",
+      frames: this.anims.generateFrameNumbers("character", { start: 8, end: 11 }), // Кадры для движения вправо
+      frameRate: 10,
+      repeat: -1,
+    });
+    
+    this.anims.create({
+      key: "walk-up",
+      frames: this.anims.generateFrameNumbers("character", { start: 12, end: 15 }), // Кадры для движения вверх
+      frameRate: 10,
+      repeat: -1,
+    });
+
     // Настраиваем управление (стрелки и WASD)
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasdKeys = this.input.keyboard!.addKeys("W,A,S,D") as {
@@ -97,12 +126,7 @@ export class HubScene extends Phaser.Scene {
     // Камера следует за персонажем
     this.cameras.main.startFollow(this.player);
     this.cameras.main.setZoom(2); // Увеличиваем масштаб камеры
-    this.cameras.main.setBounds(
-      0,
-      0,
-      map.widthInPixels,
-      map.heightInPixels
-    ); // Устанавливаем границы
+    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels); // Устанавливаем границы
 
     // Добавляем индикатор взаимодействия
     this.indicator = this.add
@@ -116,58 +140,76 @@ export class HubScene extends Phaser.Scene {
   }
 
   update() {
-    const speed = 4;
+    const speed = 3;
     let velocityX = 0;
     let velocityY = 0;
-  
+    let animationKey = "";
+
     // Управление с помощью стрелок и WASD
-    if (this.cursors.left?.isDown || this.wasdKeys.A.isDown) velocityX = -speed;
-    if (this.cursors.right?.isDown || this.wasdKeys.D.isDown) velocityX = speed;
-    if (this.cursors.up?.isDown || this.wasdKeys.W.isDown) velocityY = -speed;
-    if (this.cursors.down?.isDown || this.wasdKeys.S.isDown) velocityY = speed;
-  
+    if (this.cursors.left?.isDown || this.wasdKeys.A.isDown) {
+      velocityX = -speed;
+      animationKey = "walk-left";
+    }
+    if (this.cursors.right?.isDown || this.wasdKeys.D.isDown) {
+      velocityX = speed;
+      animationKey = "walk-right";
+    }
+    if (this.cursors.up?.isDown || this.wasdKeys.W.isDown) {
+      velocityY = -speed;
+      animationKey = "walk-up";
+    }
+    if (this.cursors.down?.isDown || this.wasdKeys.S.isDown) {
+      velocityY = speed;
+      animationKey = "walk-down";
+    }
+
     // Устанавливаем скорость персонажа
     this.player.setVelocity(velocityX, velocityY);
-  
-    // Разворот персонажа
-    if (velocityX > 0) this.player.setFlipX(false); // Смотрит вправо
-    if (velocityX < 0) this.player.setFlipX(true); // Смотрит влево
-  
+
+    // Проигрываем анимацию только если персонаж движется
+    if (velocityX !== 0 || velocityY !== 0) {
+      this.player.anims.play(animationKey, true);
+    } else {
+      this.player.anims.stop(); // Останавливаем анимацию, если персонаж стоит
+    }
+
     // Получаем центр игрока
     const playerCenter = this.player.getCenter();
-  
+
     // Проверяем расстояние до тайлов fallingRocksStartLayer
     const tileRadius = 2.5; // Радиус в тайлах
     const tileWidth = 16; // Размер тайла в пикселях
     const tileHeight = 16; // Размер тайла в пикселях
     let isNear = false;
-  
+
     this.fallingRocksStartLayer.forEachTile((tile) => {
       if (!tile || !tile.properties.collides) return;
-  
+
       const tileWorldX = tile.getCenterX();
       const tileWorldY = tile.getCenterY();
-  
+
       const distance = Phaser.Math.Distance.Between(
         playerCenter.x,
         playerCenter.y,
         tileWorldX,
         tileWorldY
       );
-  
+
       if (distance <= tileRadius * Math.max(tileWidth, tileHeight)) {
         isNear = true;
-        this.indicator.setPosition(playerCenter.x, playerCenter.y - 40).setVisible(true);
+        this.indicator
+          .setPosition(playerCenter.x, playerCenter.y - 40)
+          .setVisible(true);
       }
     });
-  
+
     if (!isNear) {
       this.indicator.setVisible(false);
     }
-  
+
     // Переход к следующей сцене
     if (isNear && Phaser.Input.Keyboard.JustDown(this.xKey)) {
       this.scene.start("FallingRocksScene"); // Переход к следующей сцене
     }
-  }  
+  }
 }

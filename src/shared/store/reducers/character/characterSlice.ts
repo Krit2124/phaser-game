@@ -1,8 +1,10 @@
 import { Character } from "@/shared/types/character";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-import warriorImage from "/assets/characters/warrior.png";
-import mageImage from "/assets/characters/mage.png";
+import maleCharacterImage from "/assets/characters/maleCharacter.png";
+import maleSpriteImage from "/assets/characters/maleSprite.png";
+import femaleCharacterImage from "/assets/characters/femaleCharacter.png";
+import femaleSpriteImage from "/assets/characters/femaleSprite.png";
 
 interface CharacterState {
   selectedCharacter: Character | null;
@@ -12,8 +14,8 @@ interface CharacterState {
 const initialState: CharacterState = {
   selectedCharacter: null,
   characters: [
-    { id: "1", name: "Warrior", image: warriorImage },
-    { id: "2", name: "Mage", image: mageImage },
+    { id: "1", name: "Jack", image: maleCharacterImage, sprite: maleSpriteImage },
+    { id: "2", name: "Alex", image: femaleCharacterImage, sprite: femaleSpriteImage },
   ],
 };
 
