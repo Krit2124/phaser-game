@@ -1,0 +1,24 @@
+.selection {
+  display: flex;
+  gap: 15px;
+}
+
+.character {
+  padding: 10px;
+  cursor: pointer;
+  text-align: center;
+
+  &_common {
+    border: 3px solid gray;
+  }
+
+  &_selected {
+    border: 3px solid green;
+  }
+
+  img {
+    width: 100px;
+    height: 100px;
+    image-rendering: crisp-edges;
+  }
+}

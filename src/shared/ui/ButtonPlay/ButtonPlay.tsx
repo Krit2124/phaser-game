@@ -1,6 +1,9 @@
+import { FC } from "react";
+
 import { useAppSelector } from "@/shared/hooks/redux";
 import { RootState } from "@/shared/store";
-import { FC } from "react";
+
+import styles from "./index.module.scss"
 
 interface ButtonPlayProps {
   onPlay: () => void
@@ -13,15 +16,9 @@ export const ButtonPlay: FC<ButtonPlayProps> = ({ onPlay }) => {
     <button
       onClick={onPlay}
       disabled={!selectedCharacter}
-      style={{
-        marginTop: "20px",
-        padding: "10px 20px",
-        background: selectedCharacter ? "green" : "gray",
-        color: "white",
-        cursor: selectedCharacter ? "pointer" : "not-allowed",
-      }}
+      className={`${styles.button} ${selectedCharacter ? styles.button_selected : styles.button_common}`}
     >
-      Играть
+      Play
     </button>
   );
 };

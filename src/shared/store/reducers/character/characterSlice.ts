@@ -1,5 +1,6 @@
-import { Character } from "@/shared/types/character";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+
+import { Character } from "@/shared/types/character";
 
 import maleCharacterImage from "/assets/characters/maleCharacter.png";
 import maleSpriteImage from "/assets/characters/maleSprite.png";

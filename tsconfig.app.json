@@ -23,6 +23,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src/app", "**/*.ts", "**/*.tsx", "src/pages/Hub/HubScene.ts"],
+  "include": ["src/app", "**/*.ts", "**/*.tsx", "src/pages/GamePage/HubScene.ts"],
   "exclude": ["node_modules"]
 }

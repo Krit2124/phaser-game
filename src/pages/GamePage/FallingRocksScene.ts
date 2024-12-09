@@ -1,5 +1,7 @@
 import Phaser from "phaser";
+
 import { Character } from "@/shared/types/character";
+import { createCharacterAnimations } from "@/shared/utils/animations";
 
 interface FallingRocksConfig {
   selectedCharacter: Character; // Данные о выбранном персонаже
@@ -10,15 +12,10 @@ export class FallingRocksScene extends Phaser.Scene {
   private selectedCharacter: Character;
   private lives: number = 3;
   private timer!: Phaser.Time.TimerEvent;
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys; // Управление
+  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private livesText!: Phaser.GameObjects.Text;
   private timerText!: Phaser.GameObjects.Text;
-  private wasdKeys!: {
-    W: Phaser.Input.Keyboard.Key;
-    A: Phaser.Input.Keyboard.Key;
-    S: Phaser.Input.Keyboard.Key;
-    D: Phaser.Input.Keyboard.Key;
-  };
+  private keys!: Record<string, Phaser.Input.Keyboard.Key>; // Клавиши для управления
 
   constructor(config: FallingRocksConfig) {
     super("FallingRocksScene");
@@ -26,88 +23,55 @@ export class FallingRocksScene extends Phaser.Scene {
   }
 
   preload() {
-    // Загрузка карты
+    // Загружаем тайлы и карту
     this.load.image("StaticTiles", "/assets/maps/StaticTiles.png");
     this.load.tilemapTiledJSON(
       "fallingRocksMap",
       "/assets/maps/fallingRocksMap.json"
     );
 
-    // Загрузка персонажа
+    // Загружаем спрайт персонажа
     this.load.spritesheet("character", this.selectedCharacter.sprite, {
       frameWidth: 32,
       frameHeight: 32,
     });
 
-    // Загрузка камней
+    // Загружаем изображение камней
     this.load.image("rock", "/assets/objects/rock.png");
   }
 
   create() {
-    // Настройка карты
+    // Создаём карту
     const map = this.make.tilemap({ key: "fallingRocksMap" });
     const staticTiles = map.addTilesetImage("StaticTiles", "StaticTiles")!;
 
-    // Создание слоёв
+    // Создаём слои карты
     map.createLayer("floor", staticTiles);
     const boundariesLayer = map.createLayer(
       "boundaries",
       staticTiles
     ) as Phaser.Tilemaps.TilemapLayer;
 
+    // Настраиваем коллизии для слоев
     boundariesLayer.setCollisionByProperty({ collides: true });
     boundariesLayer.name = "boundaries";
     this.matter.world.convertTilemapLayer(boundariesLayer);
 
-    // Добавление персонажа
+    // Добавляем персонажа
     this.player = this.matter.add.sprite(320, 320, "character", 0);
     this.player.setFixedRotation();
 
-    // Анимации
-    this.anims.create({
-      key: "walk-down",
-      frames: this.anims.generateFrameNumbers("character", { start: 0, end: 3 }),
-      frameRate: 10,
-      repeat: -1,
-    });
+    // Анимации персонажа
+    createCharacterAnimations(this);
 
-    this.anims.create({
-      key: "walk-left",
-      frames: this.anims.generateFrameNumbers("character", { start: 4, end: 7 }),
-      frameRate: 10,
-      repeat: -1,
-    });
-
-    this.anims.create({
-      key: "walk-right",
-      frames: this.anims.generateFrameNumbers("character", {
-        start: 8,
-        end: 11,
-      }),
-      frameRate: 10,
-      repeat: -1,
-    });
-
-    this.anims.create({
-      key: "walk-up",
-      frames: this.anims.generateFrameNumbers("character", {
-        start: 12,
-        end: 15,
-      }),
-      frameRate: 10,
-      repeat: -1,
-    });
-
-    // Управление
+    // Настраиваем управление
     this.cursors = this.input.keyboard!.createCursorKeys();
-    this.wasdKeys = this.input.keyboard!.addKeys("W,A,S,D") as {
-      W: Phaser.Input.Keyboard.Key;
-      A: Phaser.Input.Keyboard.Key;
-      S: Phaser.Input.Keyboard.Key;
-      D: Phaser.Input.Keyboard.Key;
-    };
+    this.keys = this.input.keyboard!.addKeys("W,A,S,D,X,R") as Record<
+      string,
+      Phaser.Input.Keyboard.Key
+    >;
 
-    // Камера
+    // Настраиваем камеру
     this.cameras.main.setScroll(
       320 - this.cameras.main.width / 2,
       320 - this.cameras.main.height / 2
@@ -121,7 +85,7 @@ export class FallingRocksScene extends Phaser.Scene {
       callbackScope: this,
     });
 
-    // Спавн камней
+    // Создаём событие на спавн камней
     this.time.addEvent({
       delay: 500,
       loop: true,
@@ -129,10 +93,10 @@ export class FallingRocksScene extends Phaser.Scene {
       callbackScope: this,
     });
 
-    // Сброс жизней
+    // Сбрасываем жизней на случай рестарта
     this.lives = 3;
 
-    // Отображение жизней (выше центра на 10.5 тайлов)
+    // Отображаем жизни (выше центра на 10.5 тайлов)
     this.livesText = this.add
       .text(
         this.cameras.main.centerX - 100,
@@ -140,13 +104,13 @@ export class FallingRocksScene extends Phaser.Scene {
         `Lives: ${this.lives}`,
         {
           fontSize: "20px",
-          color: "#ffffff",
+          color: "#000000",
         }
       )
       .setOrigin(0.5)
       .setScrollFactor(0);
 
-    // Отображение таймера
+    // Отображаем таймер
     this.timerText = this.add
       .text(
         this.cameras.main.centerX + 100,
@@ -154,31 +118,47 @@ export class FallingRocksScene extends Phaser.Scene {
         `Time: 60`,
         {
           fontSize: "20px",
-          color: "#ffffff",
+          color: "#000000",
         }
       )
       .setOrigin(0.5)
       .setScrollFactor(0);
 
-    // Интерактивная кнопка для перезапуска
+    // Интерактивный текст для перезапуска
     this.add
       .text(
-        this.cameras.main.centerX,
+        this.cameras.main.centerX - 90,
         this.cameras.main.centerY + 168,
-        "Press R to Restart",
+        "R - Restart",
         {
           fontSize: "20px",
-          color: "#ffffff",
+          color: "#000000",
         }
       )
       .setOrigin(0.5)
       .setInteractive()
       .setScrollFactor(0)
-      .on("pointerdown", () => this.scene.restart()); // Перезапуск сцены
+      .on("pointerdown", () => this.scene.restart());
+
+    // Интерактивный текст для перехода к предыдущей сцене
+    this.add
+      .text(
+        this.cameras.main.centerX + 90,
+        this.cameras.main.centerY + 168,
+        "X - Return",
+        {
+          fontSize: "20px",
+          color: "#000000",
+        }
+      )
+      .setOrigin(0.5)
+      .setInteractive()
+      .setScrollFactor(0)
+      .on("pointerdown", () => this.scene.start("HubScene"));
   }
 
   update() {
-    // Обновление таймера
+    // Обновляем таймер
     const remainingTime = Math.ceil((this.timer.getRemaining() || 0) / 1000);
     this.timerText.setText(`Time: ${remainingTime}`);
 
@@ -189,19 +169,19 @@ export class FallingRocksScene extends Phaser.Scene {
     let animationKey = "";
 
     // Управление с помощью стрелок и WASD
-    if (this.cursors.left?.isDown || this.wasdKeys.A.isDown) {
+    if (this.cursors.left?.isDown || this.keys.A.isDown) {
       velocityX = -speed;
       animationKey = "walk-left";
     }
-    if (this.cursors.right?.isDown || this.wasdKeys.D.isDown) {
+    if (this.cursors.right?.isDown || this.keys.D.isDown) {
       velocityX = speed;
       animationKey = "walk-right";
     }
-    if (this.cursors.up?.isDown || this.wasdKeys.W.isDown) {
+    if (this.cursors.up?.isDown || this.keys.W.isDown) {
       velocityY = -speed;
       animationKey = "walk-up";
     }
-    if (this.cursors.down?.isDown || this.wasdKeys.S.isDown) {
+    if (this.cursors.down?.isDown || this.keys.S.isDown) {
       velocityY = speed;
       animationKey = "walk-down";
     }
@@ -209,16 +189,21 @@ export class FallingRocksScene extends Phaser.Scene {
     // Устанавливаем скорость персонажа
     this.player.setVelocity(velocityX, velocityY);
 
-    // Проигрываем анимацию только если персонаж движется
+    // Проигрываем анимацию
     if (velocityX !== 0 || velocityY !== 0) {
       this.player.anims.play(animationKey, true);
     } else {
-      this.player.anims.stop(); // Останавливаем анимацию, если персонаж стоит
+      this.player.anims.stop();
     }
 
     // Перезапуск сцены
-    if (this.input.keyboard!.checkDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.R))) {
-      this.scene.restart(); // Перезапуск
+    if (Phaser.Input.Keyboard.JustDown(this.keys.R)) {
+      this.scene.restart();
+    }
+
+    // Переход к предыдущей сцене
+    if (Phaser.Input.Keyboard.JustDown(this.keys.X)) {
+      this.scene.start("HubScene");
     }
   }
 
@@ -229,7 +214,7 @@ export class FallingRocksScene extends Phaser.Scene {
     rock.setVelocity(0, Phaser.Math.Between(2, 3)); // Скорость падения
     rock.setFriction(0, 0); // Отключаем трение
 
-    // Обработка столкновений с барьерами
+    // Обработка столкновений с барьерами и игроком
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rock.setOnCollide((pair: any) => {
       const bodyA = pair.bodyA;
@@ -238,10 +223,12 @@ export class FallingRocksScene extends Phaser.Scene {
       const objectA = bodyA.gameObject;
       const objectB = bodyB.gameObject;
 
-      // Проверка на столкновение с игроком
       if (objectA === this.player || objectB === this.player) {
-        this.lives -= 1;
-        this.updateLivesUI();
+        // Не отнимаем жизни, если время закончилось
+        if (this.timer.getRemaining() > 0) {
+          this.lives -= 1;
+          this.updateLivesUI();
+        }
         rock.destroy();
 
         if (this.lives <= 0) {
@@ -264,7 +251,7 @@ export class FallingRocksScene extends Phaser.Scene {
     this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY, "Victory!", {
         fontSize: "32px",
-        color: "#ffffff",
+        color: "#0000ff",
       })
       .setOrigin(0.5)
       .setScrollFactor(0);
@@ -279,12 +266,12 @@ export class FallingRocksScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setScrollFactor(0);
-    this.time.removeAllEvents(); // Останавливаем таймер
+    this.time.removeAllEvents(); // Останавливаем таймеры
     this.matter.world.pause(); // Останавливаем мир
   }
 
   adjustCameraZoom() {
-    // Рассчитываем минимальный зум для отображения 352px
+    // Рассчитываем минимальный зум для отображения 352px (вся игровая зона + минимум тайл с края)
     const widthZoom = this.cameras.main.width / 352;
     const heightZoom = this.cameras.main.height / 352;
 

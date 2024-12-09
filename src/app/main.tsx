@@ -1,11 +1,13 @@
-import { setupStore } from "@/shared/store";
-import { StrictMode } from "react";
+import { lazy, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Provider } from "react-redux";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+
+import { setupStore } from "@/shared/store";
 import { MainLayout } from "./layouts/MainLayout";
 import { CharacterSelectionPage } from "@/pages/CharacterSelection";
-import { HubPage } from "@/pages/Hub";
+const GamePage = lazy(() => import("@/pages/GamePage/GamePage"));
+import { ErrorPage } from "@/pages/ErrorPage";
 
 import "@/shared/styles/global.scss"
 
@@ -15,14 +17,15 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <MainLayout />,
+    errorElement: <ErrorPage />,
     children: [
       {
         path: "",
         element: <CharacterSelectionPage />
       },
       {
-        path: "hub",
-        element: <HubPage />
+        path: "game",
+        element: <GamePage />
       }
     ]
   },

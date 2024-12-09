@@ -1,5 +1,7 @@
-import { Character } from "@/shared/types/character";
 import Phaser from "phaser";
+
+import { Character } from "@/shared/types/character";
+import { createCharacterAnimations } from "@/shared/utils/animations";
 
 interface HubSceneConfig {
   selectedCharacter: Character;
@@ -8,16 +10,10 @@ interface HubSceneConfig {
 export class HubScene extends Phaser.Scene {
   private player!: Phaser.Physics.Matter.Sprite;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private wasdKeys!: {
-    W: Phaser.Input.Keyboard.Key;
-    A: Phaser.Input.Keyboard.Key;
-    S: Phaser.Input.Keyboard.Key;
-    D: Phaser.Input.Keyboard.Key;
-  };
-  private xKey!: Phaser.Input.Keyboard.Key; // Для перехода на следующую сцену
+  private keys!: Record<string, Phaser.Input.Keyboard.Key>; // Клавиши для управления
   private selectedCharacter: Character;
   private indicator!: Phaser.GameObjects.Text; // Индикатор взаимодействия
-  private fallingRocksStartLayer!: Phaser.Tilemaps.TilemapLayer; // Слой fallingRocksStart
+  private fallingRocksStartLayer!: Phaser.Tilemaps.TilemapLayer; // Слой fallingRocksStart (активатор мини-игры)
 
   constructor(config: HubSceneConfig) {
     super("HubScene");
@@ -30,7 +26,7 @@ export class HubScene extends Phaser.Scene {
     this.load.image("StaticTiles", "/assets/maps/StaticTiles.png");
     this.load.tilemapTiledJSON("map", "/assets/maps/map.json");
 
-    // Загружаем текстуры персонажа
+    // Загружаем спрайт персонажа
     this.load.spritesheet("character", this.selectedCharacter.sprite, {
       frameWidth: 32,
       frameHeight: 32,
@@ -54,18 +50,22 @@ export class HubScene extends Phaser.Scene {
       animTIles,
       staticTiles,
     ]) as Phaser.Tilemaps.TilemapLayer;
+
     map.createLayer("floor", [
       animTIles,
       staticTiles,
     ]) as Phaser.Tilemaps.TilemapLayer;
+
     map.createLayer("smallObjects", [
       animTIles,
       staticTiles,
     ]) as Phaser.Tilemaps.TilemapLayer;
+
     const objectsLayer = map.createLayer("objects", [
       animTIles,
       staticTiles,
     ]) as Phaser.Tilemaps.TilemapLayer;
+
     this.fallingRocksStartLayer = map.createLayer("fallingRocksStart", [
       animTIles,
       staticTiles,
@@ -73,11 +73,12 @@ export class HubScene extends Phaser.Scene {
 
     // Настраиваем коллизии для слоев
     waterLayer.setCollisionByProperty({ collides: true });
-    objectsLayer.setCollisionByProperty({ collides: true });
-    this.fallingRocksStartLayer.setCollisionByProperty({ collides: true });
-
     this.matter.world.convertTilemapLayer(waterLayer);
+
+    objectsLayer.setCollisionByProperty({ collides: true });
     this.matter.world.convertTilemapLayer(objectsLayer);
+
+    this.fallingRocksStartLayer.setCollisionByProperty({ collides: true });
     this.matter.world.convertTilemapLayer(this.fallingRocksStartLayer);
 
     // Добавляем персонажа
@@ -85,48 +86,20 @@ export class HubScene extends Phaser.Scene {
     this.player.setFixedRotation();
 
     // Анимации персонажа
-    this.anims.create({
-      key: "walk-down",
-      frames: this.anims.generateFrameNumbers("character", { start: 0, end: 3 }), // Кадры для движения вниз
-      frameRate: 10,
-      repeat: -1, // Зацикленное воспроизведение
-    });
-    
-    this.anims.create({
-      key: "walk-left",
-      frames: this.anims.generateFrameNumbers("character", { start: 4, end: 7 }), // Кадры для движения влево
-      frameRate: 10,
-      repeat: -1,
-    });
-    
-    this.anims.create({
-      key: "walk-right",
-      frames: this.anims.generateFrameNumbers("character", { start: 8, end: 11 }), // Кадры для движения вправо
-      frameRate: 10,
-      repeat: -1,
-    });
-    
-    this.anims.create({
-      key: "walk-up",
-      frames: this.anims.generateFrameNumbers("character", { start: 12, end: 15 }), // Кадры для движения вверх
-      frameRate: 10,
-      repeat: -1,
-    });
+    createCharacterAnimations(this);
 
-    // Настраиваем управление (стрелки и WASD)
+    // Настраиваем управление
     this.cursors = this.input.keyboard!.createCursorKeys();
-    this.wasdKeys = this.input.keyboard!.addKeys("W,A,S,D") as {
-      W: Phaser.Input.Keyboard.Key;
-      A: Phaser.Input.Keyboard.Key;
-      S: Phaser.Input.Keyboard.Key;
-      D: Phaser.Input.Keyboard.Key;
-    };
-    this.xKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+    this.keys = this.input.keyboard!.addKeys("W,A,S,D,X") as Record<
+      string,
+      Phaser.Input.Keyboard.Key
+    >;
 
-    // Камера следует за персонажем
-    this.cameras.main.startFollow(this.player);
-    this.cameras.main.setZoom(2); // Увеличиваем масштаб камеры
-    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels); // Устанавливаем границы
+    // Настраиваем камеру
+    this.cameras.main
+      .startFollow(this.player)
+      .setZoom(2)
+      .setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
     // Добавляем индикатор взаимодействия
     this.indicator = this.add
@@ -146,19 +119,19 @@ export class HubScene extends Phaser.Scene {
     let animationKey = "";
 
     // Управление с помощью стрелок и WASD
-    if (this.cursors.left?.isDown || this.wasdKeys.A.isDown) {
+    if (this.cursors.left?.isDown || this.keys.A.isDown) {
       velocityX = -speed;
       animationKey = "walk-left";
     }
-    if (this.cursors.right?.isDown || this.wasdKeys.D.isDown) {
+    if (this.cursors.right?.isDown || this.keys.D.isDown) {
       velocityX = speed;
       animationKey = "walk-right";
     }
-    if (this.cursors.up?.isDown || this.wasdKeys.W.isDown) {
+    if (this.cursors.up?.isDown || this.keys.W.isDown) {
       velocityY = -speed;
       animationKey = "walk-up";
     }
-    if (this.cursors.down?.isDown || this.wasdKeys.S.isDown) {
+    if (this.cursors.down?.isDown || this.keys.S.isDown) {
       velocityY = speed;
       animationKey = "walk-down";
     }
@@ -166,11 +139,11 @@ export class HubScene extends Phaser.Scene {
     // Устанавливаем скорость персонажа
     this.player.setVelocity(velocityX, velocityY);
 
-    // Проигрываем анимацию только если персонаж движется
+    // Проигрываем анимацию
     if (velocityX !== 0 || velocityY !== 0) {
       this.player.anims.play(animationKey, true);
     } else {
-      this.player.anims.stop(); // Останавливаем анимацию, если персонаж стоит
+      this.player.anims.stop();
     }
 
     // Получаем центр игрока
@@ -178,8 +151,7 @@ export class HubScene extends Phaser.Scene {
 
     // Проверяем расстояние до тайлов fallingRocksStartLayer
     const tileRadius = 2.5; // Радиус в тайлах
-    const tileWidth = 16; // Размер тайла в пикселях
-    const tileHeight = 16; // Размер тайла в пикселях
+    const tileSize = 16; // Размер тайла в пикселях
     let isNear = false;
 
     this.fallingRocksStartLayer.forEachTile((tile) => {
@@ -195,7 +167,7 @@ export class HubScene extends Phaser.Scene {
         tileWorldY
       );
 
-      if (distance <= tileRadius * Math.max(tileWidth, tileHeight)) {
+      if (distance <= tileRadius * tileSize) {
         isNear = true;
         this.indicator
           .setPosition(playerCenter.x, playerCenter.y - 40)
@@ -208,8 +180,8 @@ export class HubScene extends Phaser.Scene {
     }
 
     // Переход к следующей сцене
-    if (isNear && Phaser.Input.Keyboard.JustDown(this.xKey)) {
-      this.scene.start("FallingRocksScene"); // Переход к следующей сцене
+    if (isNear && Phaser.Input.Keyboard.JustDown(this.keys.X)) {
+      this.scene.start("FallingRocksScene");
     }
   }
 }
