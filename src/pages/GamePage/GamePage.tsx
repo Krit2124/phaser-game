@@ -21,7 +21,7 @@ const GamePage: FC = () => {
         parent: gameRef.current!,
         width: window.innerWidth,
         height: window.innerHeight,
-        backgroundColor: "#83dc6e", // Цвет травы
+        backgroundColor: "#5ea7e2", // Цвет воды
         scene: [
           new HubScene({ selectedCharacter }),
           new FallingRocksScene({ selectedCharacter }),

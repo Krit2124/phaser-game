@@ -18,6 +18,8 @@ export class FallingRocksScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private livesText!: Phaser.GameObjects.Text;
   private timerText!: Phaser.GameObjects.Text;
+  private restartText!: Phaser.GameObjects.Text;
+  private returnText!: Phaser.GameObjects.Text;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>; // Клавиши для управления
 
   constructor(config: FallingRocksConfig) {
@@ -77,12 +79,9 @@ export class FallingRocksScene extends Phaser.Scene {
       Phaser.Input.Keyboard.Key
     >;
 
-    // Настраиваем камеру
-    this.cameras.main.setScroll(
-      320 - this.cameras.main.width / 2,
-      320 - this.cameras.main.height / 2
-    );
+    // Настраиваем камеру в первый раз и при каждом изменении размеров окна
     this.adjustCameraZoom();
+    this.scale.on("resize", this.adjustCameraZoom, this);
 
     // Таймер на 1 минуту
     this.timer = this.time.addEvent({
@@ -99,7 +98,7 @@ export class FallingRocksScene extends Phaser.Scene {
       callbackScope: this,
     });
 
-    // Сбрасываем жизней на случай рестарта
+    // Сбрасываем жизни на случай рестарта
     this.lives = 3;
 
     // Отображаем жизни (выше центра на 10.5 тайлов)
@@ -131,7 +130,7 @@ export class FallingRocksScene extends Phaser.Scene {
       .setScrollFactor(0);
 
     // Интерактивный текст для перезапуска
-    this.add
+    this.restartText = this.add
       .text(
         this.cameras.main.centerX - 90,
         this.cameras.main.centerY + 168,
@@ -147,7 +146,7 @@ export class FallingRocksScene extends Phaser.Scene {
       .on("pointerdown", () => this.restart());
 
     // Интерактивный текст для перехода к предыдущей сцене
-    this.add
+    this.returnText = this.add
       .text(
         this.cameras.main.centerX + 90,
         this.cameras.main.centerY + 168,
@@ -160,9 +159,9 @@ export class FallingRocksScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive()
       .setScrollFactor(0)
-      .on("pointerdown", () => this.scene.start("HubScene"));
+      .on("pointerdown", () => this.switchScene("HubScene"));
 
-    createRocksAnimations(this)
+    createRocksAnimations(this);
   }
 
   update() {
@@ -211,11 +210,11 @@ export class FallingRocksScene extends Phaser.Scene {
 
     // Переход к предыдущей сцене
     if (Phaser.Input.Keyboard.JustDown(this.keys.X)) {
-      this.scene.start("HubScene");
+      this.switchScene("HubScene");
     }
   }
 
-  spawnRock() {
+  private spawnRock() {
     const x = Phaser.Math.Between(192, 448); // Случайная позиция по X (с 12 по 28 тайл)
     const rock = this.matter.add.sprite(x, 192, "rock");
 
@@ -253,11 +252,11 @@ export class FallingRocksScene extends Phaser.Scene {
     });
   }
 
-  updateLivesUI() {
+  private updateLivesUI() {
     this.livesText.setText(`Lives: ${this.lives}`);
   }
 
-  onWin() {
+  private onWin() {
     this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY, "Victory!", {
         fontSize: "32px",
@@ -268,7 +267,7 @@ export class FallingRocksScene extends Phaser.Scene {
     this.time.removeAllEvents(); // Останавливаем таймеры
   }
 
-  onLose() {
+  private onLose() {
     this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY, "Defeat!", {
         fontSize: "32px",
@@ -281,8 +280,8 @@ export class FallingRocksScene extends Phaser.Scene {
     this.anims.pauseAll(); // Останавливаем анимации
   }
 
-  adjustCameraZoom() {
-    // Рассчитываем минимальный зум для отображения 352px (вся игровая зона + минимум тайл с края)
+  private adjustCameraZoom() {
+    // Рассчитываем минимальный зум для отображения 352px (вся игровая зона + минимум 1 тайл с края)
     const widthZoom = this.cameras.main.width / 352;
     const heightZoom = this.cameras.main.height / 352;
 
@@ -290,10 +289,42 @@ export class FallingRocksScene extends Phaser.Scene {
     const zoom = Math.min(widthZoom, heightZoom);
 
     this.cameras.main.setZoom(zoom);
+
+    // Центрирование
+    this.cameras.main.setScroll(
+      320 - this.cameras.main.width / 2,
+      320 - this.cameras.main.height / 2
+    );
+
+    // Обновление позиции теста
+    this.updateTextPositions();
   }
 
-  restart() {
+  private updateTextPositions() {
+    const { centerX, centerY } = this.cameras.main;
+
+    // Тексты должны создаваться вместе, так что должно хватить проверки на один из них
+    if (this.livesText) {
+      // Позиции для текста с жизнями
+      this.livesText.setPosition(centerX - 100, centerY - 168);
+
+      // Позиции для текста с таймером
+      this.timerText.setPosition(centerX + 100, centerY - 168);
+
+      // Позиции для текста "R - Restart"
+      this.restartText.setPosition(centerX - 90, centerY + 168);
+
+      // Позиции для текста "X - Return"
+      this.returnText.setPosition(centerX + 90, centerY + 168);
+    }
+  }
+
+  private restart() {
     this.scene.restart();
     this.anims.resumeAll();
+  }
+
+  private switchScene(scene: string) {
+    this.scene.switch(scene);
   }
 }
