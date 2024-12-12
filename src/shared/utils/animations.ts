@@ -15,3 +15,12 @@ export function createCharacterAnimations(scene: Phaser.Scene) {
     });
   });
 }
+
+export function createRocksAnimations(scene: Phaser.Scene) {
+  scene.anims.create({
+    key: "fallingRock",
+    frames: scene.anims.generateFrameNumbers("rock", { start: 0, end: 11 }),
+    frameRate: 10,
+    repeat: -1,
+  });
+}

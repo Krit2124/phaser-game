@@ -1,7 +1,10 @@
 import Phaser from "phaser";
 
 import { Character } from "@/shared/types/character";
-import { createCharacterAnimations } from "@/shared/utils/animations";
+import {
+  createCharacterAnimations,
+  createRocksAnimations,
+} from "@/shared/utils/animations";
 
 interface FallingRocksConfig {
   selectedCharacter: Character; // Данные о выбранном персонаже
@@ -37,7 +40,10 @@ export class FallingRocksScene extends Phaser.Scene {
     });
 
     // Загружаем изображение камней
-    this.load.image("rock", "/assets/objects/rock.png");
+    this.load.spritesheet("rock", "/assets/objects/rock.png", {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
   }
 
   create() {
@@ -138,7 +144,7 @@ export class FallingRocksScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive()
       .setScrollFactor(0)
-      .on("pointerdown", () => this.scene.restart());
+      .on("pointerdown", () => this.restart());
 
     // Интерактивный текст для перехода к предыдущей сцене
     this.add
@@ -155,6 +161,8 @@ export class FallingRocksScene extends Phaser.Scene {
       .setInteractive()
       .setScrollFactor(0)
       .on("pointerdown", () => this.scene.start("HubScene"));
+
+    createRocksAnimations(this)
   }
 
   update() {
@@ -198,7 +206,7 @@ export class FallingRocksScene extends Phaser.Scene {
 
     // Перезапуск сцены
     if (Phaser.Input.Keyboard.JustDown(this.keys.R)) {
-      this.scene.restart();
+      this.restart();
     }
 
     // Переход к предыдущей сцене
@@ -209,10 +217,12 @@ export class FallingRocksScene extends Phaser.Scene {
 
   spawnRock() {
     const x = Phaser.Math.Between(192, 448); // Случайная позиция по X (с 12 по 28 тайл)
-    const rock = this.matter.add.image(x, 192, "rock");
+    const rock = this.matter.add.sprite(x, 192, "rock");
 
     rock.setVelocity(0, Phaser.Math.Between(2, 3)); // Скорость падения
     rock.setFriction(0, 0); // Отключаем трение
+
+    rock.play("fallingRock");
 
     // Обработка столкновений с барьерами и игроком
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -268,6 +278,7 @@ export class FallingRocksScene extends Phaser.Scene {
       .setScrollFactor(0);
     this.time.removeAllEvents(); // Останавливаем таймеры
     this.matter.world.pause(); // Останавливаем мир
+    this.anims.pauseAll(); // Останавливаем анимации
   }
 
   adjustCameraZoom() {
@@ -279,5 +290,10 @@ export class FallingRocksScene extends Phaser.Scene {
     const zoom = Math.min(widthZoom, heightZoom);
 
     this.cameras.main.setZoom(zoom);
+  }
+
+  restart() {
+    this.scene.restart();
+    this.anims.resumeAll();
   }
 }
