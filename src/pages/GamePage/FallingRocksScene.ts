@@ -20,6 +20,7 @@ export class FallingRocksScene extends Phaser.Scene {
   private timerText!: Phaser.GameObjects.Text;
   private restartText!: Phaser.GameObjects.Text;
   private returnText!: Phaser.GameObjects.Text;
+  private gameFinishText!: Phaser.GameObjects.Text;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>; // Клавиши для управления
 
   constructor(config: FallingRocksConfig) {
@@ -257,7 +258,7 @@ export class FallingRocksScene extends Phaser.Scene {
   }
 
   private onWin() {
-    this.add
+    this.gameFinishText = this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY, "Victory!", {
         fontSize: "32px",
         color: "#0000ff",
@@ -268,7 +269,7 @@ export class FallingRocksScene extends Phaser.Scene {
   }
 
   private onLose() {
-    this.add
+    this.gameFinishText = this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY, "Defeat!", {
         fontSize: "32px",
         color: "#ff0000",
@@ -316,6 +317,10 @@ export class FallingRocksScene extends Phaser.Scene {
 
       // Позиции для текста "X - Return"
       this.returnText.setPosition(centerX + 90, centerY + 168);
+    }
+
+    if (this.gameFinishText) {
+      this.gameFinishText.setPosition(centerX, centerY);
     }
   }
 
